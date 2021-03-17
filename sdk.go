@@ -379,17 +379,18 @@ analysis:
 }
 
 func (room *liveRoom) findServer() error {
-	resRoom, err := httpSend(fmt.Sprintf(roomInitURL, room.roomID))
-	if err != nil {
-		return err
-	}
+	// resRoom, err := httpSend(fmt.Sprintf(roomInitURL, room.roomID))
+	// if err != nil {
+	// 	return err
+	// }
 
-	roomInfo := roomInfoResult{}
-	_ = json.Unmarshal(resRoom, &roomInfo)
-	if roomInfo.Code != 0 {
-		return errors.New("房间不正确")
-	}
-	room.realRoomID = roomInfo.Data.RoomID
+	// roomInfo := roomInfoResult{}
+	// _ = json.Unmarshal(resRoom, &roomInfo)
+	// if roomInfo.Code != 0 {
+	// 	return errors.New("房间不正确")
+	// }
+	// room.realRoomID = roomInfo.Data.RoomID
+	room.realRoomID = room.roomID // 强制要求输入为完整房间号
 	resDanmuConfig, err := httpSend(fmt.Sprintf(roomConfigURL, room.realRoomID))
 	if err != nil {
 		return err
