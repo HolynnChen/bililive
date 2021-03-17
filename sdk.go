@@ -5,7 +5,6 @@ import (
 	"compress/zlib"
 	"context"
 	"encoding/binary"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -15,7 +14,11 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	jsoniter "github.com/json-iterator/go"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 const (
 	roomInitURL                    string = "https://api.live.bilibili.com/room/v1/Room/room_init?id=%d"
@@ -95,6 +98,7 @@ func (live *Live) Join(roomIDs ...int) error {
 		room := &liveRoom{
 			roomID: roomID,
 			cancel: cancel,
+			debug:  live.Debug,
 		}
 		live.room[roomID] = room
 		room.enter()
@@ -417,7 +421,9 @@ func (room *liveRoom) createConnect() {
 
 		counter := 0
 		for {
-			log.Println("尝试创建连接：", room.hostServerList[room.currentServerIndex].Host, room.hostServerList[room.currentServerIndex].Port)
+			if room.debug {
+				log.Println("尝试创建连接：", room.hostServerList[room.currentServerIndex].Host, room.hostServerList[room.currentServerIndex].Port)
+			}
 			conn, err := connect(room.hostServerList[room.currentServerIndex].Host, room.hostServerList[room.currentServerIndex].Port)
 			if err != nil {
 				log.Println("connect err:", err)
@@ -430,7 +436,9 @@ func (room *liveRoom) createConnect() {
 				continue
 			}
 			room.conn = conn
-			log.Println("连接创建成功：", room.hostServerList[room.currentServerIndex].Host, room.hostServerList[room.currentServerIndex].Port)
+			if room.debug {
+				log.Println("连接创建成功：", room.hostServerList[room.currentServerIndex].Host, room.hostServerList[room.currentServerIndex].Port)
+			}
 			room.currentServerIndex++
 			return
 		}
@@ -492,7 +500,9 @@ func (room *liveRoom) receive(ctx context.Context, chSocketMessage chan<- *socke
 			if counter >= 10 {
 				log.Panic(err)
 			}
-			log.Println("read err:", err)
+			if err != io.EOF {
+				log.Println("read err:", err)
+			}
 			room.enter()
 			counter++
 			continue
@@ -519,7 +529,9 @@ func (room *liveRoom) receive(ctx context.Context, chSocketMessage chan<- *socke
 			if counter >= 10 {
 				log.Panic(err)
 			}
-			log.Println("read err:", err)
+			if err != io.EOF {
+				log.Println("read err:", err)
+			}
 			room.enter()
 			counter++
 			continue

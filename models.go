@@ -55,6 +55,7 @@ type liveRoom struct {
 	currentServerIndex int
 	token              string // key
 	conn               *net.TCPConn
+	debug              bool
 }
 
 type messageHeader struct {
