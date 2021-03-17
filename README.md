@@ -8,7 +8,7 @@ package main
 import (
 	"log"
 	"context"
-	"github.com/zboyco/bililive"
+	"github.com/holynnchen/bililive"
 )
 
 func main() {
