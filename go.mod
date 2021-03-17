@@ -1,4 +1,4 @@
-module github.com/zboyco/bililive
+module github.com/holynnchen/bililive
 
 go 1.15
 
