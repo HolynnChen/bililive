@@ -202,7 +202,6 @@ analysis:
 			}
 			switch result.CMD {
 			case "LIVE": // 直播开始
-				log.Println(string(buffer.Buffer))
 				if live.Live != nil {
 					live.Live(buffer.RoomID)
 				}
@@ -211,7 +210,6 @@ analysis:
 			case "PREPARING": // 准备
 				fallthrough
 			case "END": // 结束
-				log.Println(string(buffer.Buffer))
 				if live.End != nil {
 					live.End(buffer.RoomID)
 				}
