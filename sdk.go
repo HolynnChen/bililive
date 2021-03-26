@@ -395,7 +395,13 @@ func (room *liveRoom) findServer() error {
 	}
 
 	danmuConfig := danmuConfigResult{}
-	_ = json.Unmarshal(resDanmuConfig, &danmuConfig)
+	err = json.Unmarshal(resDanmuConfig, &danmuConfig)
+	if err != nil {
+		return err
+	}
+	if danmuConfig.Data == nil {
+		return errors.New("findServer no data")
+	}
 	room.server = danmuConfig.Data.Host
 	room.port = danmuConfig.Data.Port
 	room.hostServerList = danmuConfig.Data.HostServerList
