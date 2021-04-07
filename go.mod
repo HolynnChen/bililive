@@ -2,4 +2,4 @@ module github.com/holynnchen/bililive
 
 go 1.16
 
-require github.com/json-iterator/go v1.1.10
+require github.com/goccy/go-json v0.4.11

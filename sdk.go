@@ -15,10 +15,8 @@ import (
 	"sync"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 )
-
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 const (
 	roomInitURL                    string = "https://api.live.bilibili.com/room/v1/Room/room_init?id=%d"
