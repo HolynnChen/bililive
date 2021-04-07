@@ -43,6 +43,39 @@ const (
 	WS_AUTH_TOKEN_ERROR        int32 = -101
 )
 
+var cmdPool = &sync.Pool{
+	New: func() interface{} {
+		return new(cmdModel)
+	},
+}
+
+var danmuPool = &sync.Pool{
+	New: func() interface{} {
+		return new(MsgModel)
+	},
+}
+
+func (m *cmdModel) reset() {
+	m.CMD = ""
+	//内部会优化为mapclear
+	for k := range m.Data {
+		delete(m.Data, k)
+	}
+	m.Info = m.Info[:0]
+}
+
+func (m *MsgModel) reset() {
+	m.UserID = 0
+	m.UserName = ""
+	m.UserLevel = 0
+	m.MedalName = ""
+	m.MedalUpName = ""
+	m.MedalRoomID = 0
+	m.MedalLevel = 0
+	m.Content = ""
+	m.Timestamp = 0
+}
+
 // Start 开始接收
 func (live *Live) Start(ctx context.Context) {
 	live.ctx = ctx
@@ -184,7 +217,7 @@ analysis:
 				log.Println("CONNECT_SUCCESS", string(buffer.Buffer))
 			}
 		case WS_OP_MESSAGE:
-			result := cmdModel{}
+			result := cmdPool.Get().(*cmdModel)
 			err := json.Unmarshal(buffer.Buffer, &result)
 			if err != nil {
 				if live.Debug {
@@ -252,13 +285,12 @@ analysis:
 
 					userInfo := result.Info[2].([]interface{})
 					medalInfo := result.Info[3].([]interface{})
-					m := &MsgModel{
-						UserID:    int64(userInfo[0].(float64)),
-						UserName:  userInfo[1].(string),
-						UserLevel: int(result.Info[4].([]interface{})[0].(float64)),
-						Content:   msgContent,
-						Timestamp: int64(result.Info[9].(map[string]interface{})["ts"].(float64)),
-					}
+					m := danmuPool.Get().(*MsgModel)
+					m.UserID = int64(userInfo[0].(float64))
+					m.UserName = userInfo[1].(string)
+					m.UserLevel = int(result.Info[4].([]interface{})[0].(float64))
+					m.Content = msgContent
+					m.Timestamp = int64(result.Info[9].(map[string]interface{})["ts"].(float64))
 					if len(medalInfo) >= 4 {
 						m.MedalLevel = int(medalInfo[0].(float64))
 						m.MedalName = medalInfo[1].(string)
@@ -266,6 +298,8 @@ analysis:
 						m.MedalRoomID = int64(medalInfo[3].(float64))
 					}
 					live.ReceiveMsg(buffer.RoomID, m)
+					m.reset()
+					danmuPool.Put(m)
 				}
 			case "SEND_GIFT": // 礼物通知
 				if live.ReceiveGift != nil {
@@ -370,6 +404,8 @@ analysis:
 					log.Println(string(buffer.Buffer))
 				}
 			}
+			result.reset()
+			cmdPool.Put(result)
 		default:
 			break
 		}
