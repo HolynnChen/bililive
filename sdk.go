@@ -540,7 +540,7 @@ func (room *liveRoom) receive(ctx context.Context, chSocketMessage chan<- *socke
 				log.Panic(err)
 			}
 			if err != io.EOF {
-				log.Println("read err:", err)
+				log.Println("header read err:", err)
 			}
 			room.enter()
 			counter++
@@ -569,7 +569,7 @@ func (room *liveRoom) receive(ctx context.Context, chSocketMessage chan<- *socke
 				log.Panic(err)
 			}
 			if err != io.EOF {
-				log.Println("read err:", err)
+				log.Println("payload read err:", err)
 			}
 			room.enter()
 			counter++
