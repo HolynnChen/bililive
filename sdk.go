@@ -408,12 +408,18 @@ analysis:
 				fallthrough
 			case "WISH_BOTTLE": // 许愿瓶
 				fallthrough
-			case "ROOM_BLOCK_MSG":
+			case "ROOM_BLOCK_MSG": // 房间封禁信息
 				fallthrough
 			case "WEEK_STAR_CLOCK":
 				fallthrough
+			case "INTERACT_WORD": // 互动信息
+				fallthrough
+			case "LIVE_INTERACTIVE_GAME":
+				fallthrough
+			case "xxx": // 上述不处理直接返回
+				continue
 			default:
-				if live.Debug&DEBUG_UNKNOW_MSG == 1 {
+				if live.Debug&DEBUG_UNKNOW_MSG == 1 { //把没注明的信息打出来
 					log.Println(string(buffer.Buffer))
 				}
 			}
