@@ -283,7 +283,7 @@ analysis:
 					if live.LotteryDanmuFilter {
 						markInfo := result.Info[0].([]interface{})
 						if markInfo[9].(float64) != 0 {
-							log.Printf("过滤抽奖弹幕：%+v\n", result)
+							//log.Printf("过滤抽奖弹幕：%+v\n", result)
 							continue analysis
 						}
 					}
