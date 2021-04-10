@@ -41,6 +41,14 @@ const (
 	WS_AUTH_TOKEN_ERROR        int32 = -101
 )
 
+const (
+	DEBUG_ALL            = 1<<64 - 1
+	DEBUG_UNKNOW_MSG     = 1
+	DEBUG_ERROR          = 1 << 1 // err!=nil
+	DEBUG_CONNECT_SUCESS = 1 << 2
+	DEBUG_CREATE_CONNECT = 1 << 3
+)
+
 var cmdPool = &sync.Pool{
 	New: func() interface{} {
 		return new(cmdModel)
@@ -185,7 +193,7 @@ func (live *Live) split(ctx context.Context) {
 				message.body = doZlibUnCompress(payloadBuffer)
 				continue
 			}
-			if live.Debug {
+			if live.Debug&DEBUG_ERROR == 1 {
 				log.Println(string(payloadBuffer))
 			}
 			live.chOperation <- &operateInfo{RoomID: message.roomID, Operation: head.Operation, Buffer: payloadBuffer}
@@ -211,14 +219,14 @@ analysis:
 				live.ReceivePopularValue(buffer.RoomID, m)
 			}
 		case WS_OP_CONNECT_SUCCESS:
-			if live.Debug {
+			if live.Debug&DEBUG_CONNECT_SUCESS == 1 {
 				log.Println("CONNECT_SUCCESS", string(buffer.Buffer))
 			}
 		case WS_OP_MESSAGE:
 			result := cmdPool.Get().(*cmdModel)
 			err := json.Unmarshal(buffer.Buffer, &result)
 			if err != nil {
-				if live.Debug {
+				if live.Debug&DEBUG_ERROR == 1 {
 					log.Println(err)
 					log.Println(string(buffer.Buffer))
 				}
@@ -226,7 +234,7 @@ analysis:
 			}
 			temp, err := json.Marshal(result.Data)
 			if err != nil {
-				if live.Debug {
+				if live.Debug&DEBUG_ERROR == 1 {
 					log.Println(err)
 				}
 				continue
@@ -272,6 +280,13 @@ analysis:
 				if live.ReceiveMsg != nil {
 					msgContent := result.Info[1].(string)
 
+					if live.LotteryDanmuFilter {
+						markInfo := result.Info[0].([]interface{})
+						if markInfo[9].(int) != 0 {
+							log.Printf("过滤抽奖弹幕：%+v\n", result)
+							continue analysis
+						}
+					}
 					if live.StormFilter && live.storming[buffer.RoomID] {
 						for _, value := range live.stormContent[buffer.RoomID] {
 							if msgContent == value {
@@ -366,7 +381,7 @@ analysis:
 					live.SuperChatMessage(buffer.RoomID, m)
 				}
 			case "SUPER_CHAT_MESSAGE_JPN":
-				if live.Debug {
+				if live.Debug&DEBUG_UNKNOW_MSG == 1 {
 					log.Println(string(buffer.Buffer))
 				}
 			case "SYS_GIFT": // 系统礼物
@@ -398,7 +413,7 @@ analysis:
 			case "WEEK_STAR_CLOCK":
 				fallthrough
 			default:
-				if live.Debug {
+				if live.Debug&DEBUG_UNKNOW_MSG == 1 {
 					log.Println(string(buffer.Buffer))
 				}
 			}
@@ -460,7 +475,7 @@ func (room *liveRoom) createConnect() {
 
 		counter := 0
 		for {
-			if room.debug {
+			if room.debug&DEBUG_CREATE_CONNECT == 1 {
 				log.Println("尝试创建连接：", room.hostServerList[room.currentServerIndex].Host, room.hostServerList[room.currentServerIndex].Port)
 			}
 			conn, err := connect(room.hostServerList[room.currentServerIndex].Host, room.hostServerList[room.currentServerIndex].Port)
@@ -475,7 +490,7 @@ func (room *liveRoom) createConnect() {
 				continue
 			}
 			room.conn = conn
-			if room.debug {
+			if room.debug&DEBUG_CREATE_CONNECT == 1 {
 				log.Println("连接创建成功：", room.hostServerList[room.currentServerIndex].Host, room.hostServerList[room.currentServerIndex].Port)
 			}
 			room.currentServerIndex++

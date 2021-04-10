@@ -8,9 +8,10 @@ import (
 
 // Live 直播间
 type Live struct {
-	Debug               bool                              // 是否显示日志
+	Debug               uint64                            // 是否显示日志
 	AnalysisRoutineNum  int                               // 消息分析协程数量，默认为1，为1可以保证通知顺序与接收到消息顺序相同
 	StormFilter         bool                              // 过滤节奏风暴弹幕，默认false不过滤
+	LotteryDanmuFilter  bool                              // 过滤天选弹幕，默认为false不过滤
 	Live                func(int)                         // 直播开始通知
 	End                 func(int)                         // 直播结束通知
 	ReceiveMsg          func(int, *MsgModel)              // 接收消息方法
@@ -55,7 +56,7 @@ type liveRoom struct {
 	currentServerIndex int
 	token              string // key
 	conn               *net.TCPConn
-	debug              bool
+	debug              uint64
 }
 
 type messageHeader struct {
