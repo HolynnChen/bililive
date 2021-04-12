@@ -642,16 +642,26 @@ func connect(host string, port int) (*net.TCPConn, error) {
 	return net.DialTCP("tcp", nil, tcpAddr)
 }
 
+var zlibReaderPool sync.Pool //缓存zlibreader
+
 // 进行zlib解压缩
 func doZlibUnCompress(compressSrc []byte) []byte {
 	b := bytes.NewReader(compressSrc)
 	var out bytes.Buffer
-	r, err := zlib.NewReader(b)
-	defer r.Close()
-	if err != nil {
-		log.Println("zlib", err)
+	var err error
+	z := zlibReaderPool.Get()
+	if z != nil {
+		err = z.(zlib.Resetter).Reset(b, nil)
+	} else {
+		z, err = zlib.NewReader(b)
 	}
-	_, err = io.Copy(&out, r)
+	if err != nil {
+		log.Panic("zlib", err)
+	}
+	defer zlibReaderPool.Put(z)
+	rc := z.(io.ReadCloser)
+	defer rc.Close()
+	_, err = io.Copy(&out, rc)
 	if err != nil {
 		log.Println("zlib copy", err)
 	}
