@@ -32,8 +32,8 @@ type Live struct {
 	wg  sync.WaitGroup
 	ctx context.Context
 
-	chSocketMessage chan *socketMessage
-	chOperation     chan *operateInfo
+	chSocketMessage *MsgProcessList
+	chOperation     *MsgProcessList
 
 	storming     map[int]bool             // 是否节奏风暴
 	stormContent map[int]map[int64]string // 节奏风暴内容

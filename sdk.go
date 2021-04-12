@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
-	"github.com/modern-go/reflect2"
 )
 
 const (
@@ -50,13 +49,9 @@ const (
 	DEBUG_CREATE_CONNECT = 1 << 3
 )
 
-func GetPool(data interface{}) sync.Pool {
-	return sync.Pool{New: reflect2.TypeOf(data).New}
-}
-
 var (
-	cmdPool = GetPool(cmdModel{})
-	msgPool = GetPool(MsgModel{})
+	cmdPool = sync.Pool{New: func() interface{} { return new(cmdModel) }}
+	msgPool = sync.Pool{New: func() interface{} { return new(MsgModel) }}
 )
 
 func (m *cmdModel) reset() {
@@ -91,8 +86,8 @@ func (live *Live) Start(ctx context.Context) {
 	}
 
 	live.room = make(map[int]*liveRoom)
-	live.chSocketMessage = make(chan *socketMessage, 3000)
-	live.chOperation = make(chan *operateInfo, 3000)
+	live.chSocketMessage = NewMsgProcessList()
+	live.chOperation = NewMsgProcessList()
 	if live.StormFilter && live.ReceiveMsg != nil {
 		live.storming = make(map[int]bool)
 		live.stormContent = make(map[int]map[int64]string)
@@ -171,7 +166,7 @@ func (live *Live) split(ctx context.Context) {
 		payloadBuffer      []byte
 	)
 	for {
-		message = <-live.chSocketMessage
+		message = live.chSocketMessage.Get().(*socketMessage)
 		for len(message.body) > 0 {
 			select {
 			case <-ctx.Done():
@@ -195,7 +190,7 @@ func (live *Live) split(ctx context.Context) {
 			if live.Debug&DEBUG_ERROR == 1 {
 				log.Println(string(payloadBuffer))
 			}
-			live.chOperation <- &operateInfo{RoomID: message.roomID, Operation: head.Operation, Buffer: payloadBuffer}
+			live.chOperation.Put(&operateInfo{RoomID: message.roomID, Operation: head.Operation, Buffer: payloadBuffer})
 		}
 	}
 }
@@ -210,7 +205,7 @@ analysis:
 		default:
 		}
 
-		buffer := <-live.chOperation
+		buffer := live.chOperation.Get().(*operateInfo)
 		switch buffer.Operation {
 		case WS_OP_HEARTBEAT_REPLY:
 			if live.ReceivePopularValue != nil {
@@ -540,7 +535,7 @@ func (room *liveRoom) heartBeat(ctx context.Context) {
 }
 
 // 接收消息
-func (room *liveRoom) receive(ctx context.Context, chSocketMessage chan<- *socketMessage) {
+func (room *liveRoom) receive(ctx context.Context, chSocketMessage *MsgProcessList) {
 	// 包头总长16个字节
 	headerBuffer := make([]byte, WS_PACKAGE_HEADER_TOTAL_LENGTH)
 	// headerBufferReader
@@ -599,10 +594,10 @@ func (room *liveRoom) receive(ctx context.Context, chSocketMessage chan<- *socke
 
 		messageBody = append(headerBuffer, payloadBuffer...)
 
-		chSocketMessage <- &socketMessage{
+		chSocketMessage.Put(&socketMessage{
 			roomID: room.roomID,
 			body:   messageBody,
-		}
+		})
 		counter = 0
 	}
 }
