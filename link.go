@@ -35,7 +35,7 @@ func (l *MsgProcessList) Put(data interface{}) {
 	newNode := l.pool.Get().(*saveDataNode)
 	newNode.data = data
 	l.lastNode.next = newNode
-	l.lastNode = l.lastNode.next
+	l.lastNode = newNode
 	l.writelock.Unlock()
 	l.readlock.Signal()
 }
@@ -48,9 +48,9 @@ func (l *MsgProcessList) Get() interface{} {
 	data := l.readNode.next.data
 	tmp := l.readNode
 	l.readNode = l.readNode.next
-	l.readlock.L.Unlock()
 	tmp.data = nil
 	tmp.next = nil
 	l.pool.Put(tmp)
+	l.readlock.L.Unlock()
 	return data
 }
