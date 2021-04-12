@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
+	"github.com/modern-go/reflect2"
 )
 
 const (
@@ -49,17 +50,14 @@ const (
 	DEBUG_CREATE_CONNECT = 1 << 3
 )
 
-var cmdPool = &sync.Pool{
-	New: func() interface{} {
-		return new(cmdModel)
-	},
+func GetPool(data interface{}) sync.Pool {
+	return sync.Pool{New: reflect2.TypeOf(data).New}
 }
 
-var danmuPool = &sync.Pool{
-	New: func() interface{} {
-		return new(MsgModel)
-	},
-}
+var (
+	cmdPool = GetPool(cmdModel{})
+	msgPool = GetPool(MsgModel{})
+)
 
 func (m *cmdModel) reset() {
 	m.CMD = ""
@@ -80,6 +78,7 @@ func (m *MsgModel) reset() {
 	m.MedalLevel = 0
 	m.Content = ""
 	m.Timestamp = 0
+	m.CT = ""
 }
 
 // Start 开始接收
@@ -92,8 +91,8 @@ func (live *Live) Start(ctx context.Context) {
 	}
 
 	live.room = make(map[int]*liveRoom)
-	live.chSocketMessage = make(chan *socketMessage, 30)
-	live.chOperation = make(chan *operateInfo, 300)
+	live.chSocketMessage = make(chan *socketMessage, 3000)
+	live.chOperation = make(chan *operateInfo, 3000)
 	if live.StormFilter && live.ReceiveMsg != nil {
 		live.storming = make(map[int]bool)
 		live.stormContent = make(map[int]map[int64]string)
@@ -298,11 +297,12 @@ analysis:
 
 					userInfo := result.Info[2].([]interface{})
 					medalInfo := result.Info[3].([]interface{})
-					m := danmuPool.Get().(*MsgModel)
+					m := msgPool.Get().(*MsgModel)
 					m.UserID = int64(userInfo[0].(float64))
 					m.UserName = userInfo[1].(string)
 					m.UserLevel = int(result.Info[4].([]interface{})[0].(float64))
 					m.Content = msgContent
+					m.CT = result.Info[9].(map[string]interface{})["ct"].(string)
 					m.Timestamp = int64(result.Info[9].(map[string]interface{})["ts"].(float64))
 					if len(medalInfo) >= 4 {
 						m.MedalLevel = int(medalInfo[0].(float64))
@@ -312,7 +312,7 @@ analysis:
 					}
 					live.ReceiveMsg(buffer.RoomID, m)
 					m.reset()
-					danmuPool.Put(m)
+					msgPool.Put(m)
 				}
 			case "SEND_GIFT": // 礼物通知
 				if live.ReceiveGift != nil {
@@ -647,6 +647,7 @@ func doZlibUnCompress(compressSrc []byte) []byte {
 	b := bytes.NewReader(compressSrc)
 	var out bytes.Buffer
 	r, err := zlib.NewReader(b)
+	defer r.Close()
 	if err != nil {
 		log.Println("zlib", err)
 	}

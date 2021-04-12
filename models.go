@@ -169,6 +169,7 @@ type MsgModel struct {
 	MedalLevel  int    // 勋章等级
 	Content     string // 内容
 	Timestamp   int64  // 时间
+	CT          string // 弹幕token
 }
 
 // ComboSendModel 连击模型
