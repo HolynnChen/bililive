@@ -107,6 +107,16 @@ type danmuData struct {
 	Token          string            `json:"token"`
 }
 
+// 弹幕信息2
+type danmuConfigResult2 struct {
+	Data *danmuData2 `json:"data"`
+}
+
+type danmuData2 struct {
+	HostList []*hostServerList `json:"host_list"`
+	Token    string            `json:"token"`
+}
+
 type hostServerList struct {
 	Host    string `json:"host"`
 	Port    int    `json:"port"`

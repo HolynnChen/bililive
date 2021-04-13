@@ -21,6 +21,7 @@ import (
 const (
 	roomInitURL                    string = "https://api.live.bilibili.com/room/v1/Room/room_init?id=%d"
 	roomConfigURL                  string = "https://api.live.bilibili.com/room/v1/Danmu/getConf?room_id=%d"
+	roomConfigURL2                 string = "https://api.live.bilibili.com/xlive/web-room/v1/index/getDanmuInfo?id=%d"
 	WS_OP_HEARTBEAT                int32  = 2
 	WS_OP_HEARTBEAT_REPLY          int32  = 3
 	WS_OP_MESSAGE                  int32  = 5
@@ -462,11 +463,37 @@ func (room *liveRoom) findServer() error {
 	return nil
 }
 
+func (room *liveRoom) findServer2() error {
+	room.realRoomID = room.roomID //轻质要求输入为完整房间号
+	resDanmuConfig, err := httpSend(fmt.Sprintf(roomConfigURL2, room.realRoomID))
+	if err != nil {
+		return err
+	}
+
+	danmuConfig := danmuConfigResult2{}
+	err = json.Unmarshal(resDanmuConfig, &danmuConfig)
+	if err != nil {
+		return err
+	}
+	if danmuConfig.Data == nil {
+		return errors.New("findServer no data")
+	}
+	room.hostServerList = danmuConfig.Data.HostList
+	room.token = danmuConfig.Data.Token
+	room.currentServerIndex = 0
+	return nil
+}
+
 func (room *liveRoom) createConnect() {
 	for {
 		if room.hostServerList == nil || len(room.hostServerList) == room.currentServerIndex {
 			for {
-				err := room.findServer()
+				var err error
+				if rand.Intn(2) == 0 {
+					err = room.findServer()
+				} else {
+					err = room.findServer2()
+				}
 				if err != nil {
 					log.Println("find server err:", err)
 					time.Sleep(500 * time.Millisecond)
