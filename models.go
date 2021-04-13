@@ -163,6 +163,7 @@ type MsgModel struct {
 	UserID      int64  // 用户ID
 	UserName    string // 用户昵称
 	UserLevel   int    // 用户等级
+	IsAdmin     bool   // 是否房管
 	MedalName   string // 勋章名
 	MedalUpName string // 勋章主播名称
 	MedalRoomID int64  // 勋章直播间ID

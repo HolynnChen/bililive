@@ -67,6 +67,7 @@ func (m *MsgModel) reset() {
 	m.UserID = 0
 	m.UserName = ""
 	m.UserLevel = 0
+	m.IsAdmin = false
 	m.MedalName = ""
 	m.MedalUpName = ""
 	m.MedalRoomID = 0
@@ -295,6 +296,7 @@ analysis:
 					m := msgPool.Get().(*MsgModel)
 					m.UserID = int64(userInfo[0].(float64))
 					m.UserName = userInfo[1].(string)
+					m.IsAdmin = userInfo[2].(float64) > 0
 					m.UserLevel = int(result.Info[4].([]interface{})[0].(float64))
 					m.Content = msgContent
 					m.CT = result.Info[9].(map[string]interface{})["ct"].(string)
