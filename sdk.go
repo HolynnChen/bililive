@@ -94,6 +94,9 @@ func (live *Live) Start(ctx context.Context) {
 		live.storming = make(map[int]bool)
 		live.stormContent = make(map[int]map[int64]string)
 	}
+	if live.Proxy == nil {
+		live.Proxy = defaultProxy
+	}
 
 	live.wg = sync.WaitGroup{}
 
@@ -134,6 +137,7 @@ func (live *Live) Join(roomIDs ...int) error {
 			roomID: roomID,
 			cancel: cancel,
 			debug:  live.Debug,
+			proxy:  live.Proxy,
 		}
 		live.room[roomID] = room
 		room.enter()
@@ -442,7 +446,7 @@ func (room *liveRoom) findServer() error {
 	// }
 	// room.realRoomID = roomInfo.Data.RoomID
 	room.realRoomID = room.roomID // 强制要求输入为完整房间号
-	resDanmuConfig, err := httpSend(fmt.Sprintf(roomConfigURL, room.realRoomID))
+	resDanmuConfig, err := httpSend(fmt.Sprintf(roomConfigURL, room.realRoomID), room.proxy())
 	if err != nil {
 		return err
 	}
@@ -465,7 +469,7 @@ func (room *liveRoom) findServer() error {
 
 func (room *liveRoom) findServer2() error {
 	room.realRoomID = room.roomID //轻质要求输入为完整房间号
-	resDanmuConfig, err := httpSend(fmt.Sprintf(roomConfigURL2, room.realRoomID))
+	resDanmuConfig, err := httpSend(fmt.Sprintf(roomConfigURL2, room.realRoomID), room.proxy())
 	if err != nil {
 		return err
 	}

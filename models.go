@@ -3,6 +3,8 @@ package bililive
 import (
 	"context"
 	"net"
+	"net/http"
+	"net/url"
 	"sync"
 )
 
@@ -28,6 +30,7 @@ type Live struct {
 	SpecialGift         func(int, *SpecialGiftModel)      // 特殊礼物
 	SuperChatMessage    func(int, *SuperChatMessageModel) // 超级留言
 	SysMessage          func(int, *SysMsgModel)           // 系统信息
+	Proxy               func() func(*http.Request) (*url.URL, error)
 
 	wg  sync.WaitGroup
 	ctx context.Context
@@ -56,6 +59,7 @@ type liveRoom struct {
 	currentServerIndex int
 	token              string // key
 	conn               *net.TCPConn
+	proxy              func() func(*http.Request) (*url.URL, error)
 	debug              uint64
 }
 
