@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 func httpSend(url string, proxy func(*http.Request) (*url.URL, error)) ([]byte, error) {
@@ -12,7 +13,7 @@ func httpSend(url string, proxy func(*http.Request) (*url.URL, error)) ([]byte, 
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		Proxy:           proxy,
 	}
-	client := &http.Client{Transport: tr}
+	client := &http.Client{Transport: tr, Timeout: 10 * time.Second}
 	resp, err := client.Get(url)
 	if err != nil {
 		return nil, err
