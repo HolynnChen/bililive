@@ -90,6 +90,9 @@ func (live *Live) Start(ctx context.Context) {
 	live.room = make(map[int]*liveRoom)
 	live.chSocketMessage = NewMsgProcessList()
 	live.chOperation = NewMsgProcessList()
+	if live.LotteryDanmuFilter && live.ReceiveMsg != nil {
+		live.lotteryContent = make(map[int]string)
+	}
 	if live.StormFilter && live.ReceiveMsg != nil {
 		live.storming = make(map[int]bool)
 		live.stormContent = make(map[int]map[int64]string)
@@ -284,6 +287,10 @@ analysis:
 						markInfo := result.Info[0].([]interface{})
 						if markInfo[9].(float64) != 0 {
 							//log.Printf("过滤抽奖弹幕：%+v\n", result)
+							live.lotteryContent[buffer.RoomID] = msgContent
+							continue analysis
+						}
+						if content, ok := live.lotteryContent[buffer.RoomID]; ok && msgContent == content {
 							continue analysis
 						}
 					}

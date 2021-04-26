@@ -41,6 +41,8 @@ type Live struct {
 	storming     map[int]bool             // 是否节奏风暴
 	stormContent map[int]map[int64]string // 节奏风暴内容
 
+	lotteryContent map[int]string // 单例信息
+
 	room map[int]*liveRoom // 直播间
 }
 
