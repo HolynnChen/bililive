@@ -133,20 +133,25 @@ func (live *Live) Join(roomIDs ...int) error {
 			return fmt.Errorf("房间 %d 已存在", roomID)
 		}
 	}
+	maxProcess := make(chan struct{}, 10) //限制最大同时进入房间并发数为10
 	for _, roomID := range roomIDs {
-		nextCtx, cancel := context.WithCancel(live.ctx)
+		maxProcess <- struct{}{}
+		go func(roomID int) {
+			nextCtx, cancel := context.WithCancel(live.ctx)
 
-		room := &liveRoom{
-			roomID: roomID,
-			cancel: cancel,
-			debug:  live.Debug,
-			proxy:  live.Proxy,
-		}
-		live.room[roomID] = room
-		room.enter()
-		go room.heartBeat(nextCtx)
-		live.stormContent[roomID] = make(map[int64]string)
-		go room.receive(nextCtx, live.chSocketMessage)
+			room := &liveRoom{
+				roomID: roomID,
+				cancel: cancel,
+				debug:  live.Debug,
+				proxy:  live.Proxy,
+			}
+			live.room[roomID] = room
+			room.enter()
+			go room.heartBeat(nextCtx)
+			live.stormContent[roomID] = make(map[int64]string)
+			go room.receive(nextCtx, live.chSocketMessage)
+			<-maxProcess
+		}(roomID)
 	}
 	return nil
 }
