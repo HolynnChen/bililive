@@ -128,25 +128,35 @@ func (live *Live) Join(roomIDs ...int) error {
 		return errors.New("没有要添加的房间")
 	}
 
+	result := make([]int, 0)
 	for _, roomID := range roomIDs {
-		if _, exist := live.room.Load(roomID); exist {
-			return fmt.Errorf("房间 %d 已存在", roomID)
+		if _, exist := live.room.Load(roomID); !exist {
+			result = append(result, roomID)
 		}
 	}
+	//提前注册至map
+	for _, roomID := range result {
+		live.stormContent[roomID] = make(map[int64]string)
+		room := &liveRoom{
+			roomID: roomID,
+			cancel: nil, //暂不赋值
+			debug:  live.Debug,
+			proxy:  live.Proxy,
+		}
+		live.room.Store(roomID, room)
+	}
 	maxProcess := make(chan struct{}, 10) //限制最大同时进入房间并发数为10
-	for _, roomID := range roomIDs {
+	for _, roomID := range result {
 		maxProcess <- struct{}{}
 		live.stormContent[roomID] = make(map[int64]string)
 		go func(roomID int) {
-			nextCtx, cancel := context.WithCancel(live.ctx)
-
-			room := &liveRoom{
-				roomID: roomID,
-				cancel: cancel,
-				debug:  live.Debug,
-				proxy:  live.Proxy,
+			value, ok := live.room.Load(roomID)
+			if !ok {
+				return
 			}
-			live.room.Store(roomID, room)
+			nextCtx, cancel := context.WithCancel(live.ctx)
+			room := value.(*liveRoom)
+			room.cancel = cancel
 			room.enter()
 			go room.heartBeat(nextCtx)
 			go room.receive(nextCtx, live.chSocketMessage)
@@ -163,8 +173,11 @@ func (live *Live) Remove(roomIDs ...int) error {
 	}
 
 	for _, roomID := range roomIDs {
-		if room, exist := live.room.Load(roomID); exist {
-			room.(*liveRoom).cancel()
+		if value, exist := live.room.Load(roomID); exist {
+			room := value.(*liveRoom)
+			if room.cancel != nil {
+				room.cancel()
+			}
 			live.room.Delete(roomID)
 		}
 	}
