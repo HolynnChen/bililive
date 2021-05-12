@@ -136,6 +136,7 @@ func (live *Live) Join(roomIDs ...int) error {
 	maxProcess := make(chan struct{}, 10) //限制最大同时进入房间并发数为10
 	for _, roomID := range roomIDs {
 		maxProcess <- struct{}{}
+		live.stormContent[roomID] = make(map[int64]string)
 		go func(roomID int) {
 			nextCtx, cancel := context.WithCancel(live.ctx)
 
@@ -148,7 +149,6 @@ func (live *Live) Join(roomIDs ...int) error {
 			live.room.Store(roomID, room)
 			room.enter()
 			go room.heartBeat(nextCtx)
-			live.stormContent[roomID] = make(map[int64]string)
 			go room.receive(nextCtx, live.chSocketMessage)
 			<-maxProcess
 		}(roomID)
