@@ -87,7 +87,7 @@ func (live *Live) Start(ctx context.Context) {
 		live.AnalysisRoutineNum = 1
 	}
 
-	live.room = make(map[int]*liveRoom)
+	live.room = sync.Map{}
 	live.chSocketMessage = NewMsgProcessList()
 	live.chOperation = NewMsgProcessList()
 	if live.LotteryDanmuFilter && live.ReceiveMsg != nil {
@@ -129,7 +129,7 @@ func (live *Live) Join(roomIDs ...int) error {
 	}
 
 	for _, roomID := range roomIDs {
-		if _, exist := live.room[roomID]; exist {
+		if _, exist := live.room.Load(roomID); exist {
 			return fmt.Errorf("房间 %d 已存在", roomID)
 		}
 	}
@@ -145,7 +145,7 @@ func (live *Live) Join(roomIDs ...int) error {
 				debug:  live.Debug,
 				proxy:  live.Proxy,
 			}
-			live.room[roomID] = room
+			live.room.Store(roomID, room)
 			room.enter()
 			go room.heartBeat(nextCtx)
 			live.stormContent[roomID] = make(map[int64]string)
@@ -163,9 +163,9 @@ func (live *Live) Remove(roomIDs ...int) error {
 	}
 
 	for _, roomID := range roomIDs {
-		if room, exist := live.room[roomID]; exist {
-			room.cancel()
-			delete(live.room, roomID)
+		if room, exist := live.room.Load(roomID); exist {
+			room.(*liveRoom).cancel()
+			live.room.Delete(roomID)
 		}
 	}
 	return nil

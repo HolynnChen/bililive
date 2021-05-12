@@ -43,7 +43,7 @@ type Live struct {
 
 	lotteryContent map[int]string // 单例信息
 
-	room map[int]*liveRoom // 直播间
+	room sync.Map //map[int]*liveRoom // 直播间
 }
 
 type socketMessage struct {
