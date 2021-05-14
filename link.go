@@ -5,11 +5,10 @@ import (
 )
 
 type MsgProcessList struct {
-	readlock  *sync.Cond
-	writelock *sync.Mutex
-	readNode  *saveDataNode
-	lastNode  *saveDataNode
-	pool      sync.Pool
+	lock     *sync.Cond
+	readNode *saveDataNode
+	lastNode *saveDataNode
+	pool     sync.Pool
 }
 
 type saveDataNode struct {
@@ -20,10 +19,9 @@ type saveDataNode struct {
 func NewMsgProcessList() *MsgProcessList {
 	initNode := &saveDataNode{}
 	return &MsgProcessList{
-		readlock:  sync.NewCond(&sync.Mutex{}),
-		writelock: &sync.Mutex{},
-		readNode:  initNode,
-		lastNode:  initNode,
+		lock:     sync.NewCond(&sync.Mutex{}),
+		readNode: initNode,
+		lastNode: initNode,
 		pool: sync.Pool{New: func() interface{} {
 			return new(saveDataNode)
 		}},
@@ -31,19 +29,19 @@ func NewMsgProcessList() *MsgProcessList {
 }
 
 func (l *MsgProcessList) Put(data interface{}) {
-	l.writelock.Lock()
+	l.lock.L.Lock()
 	newNode := l.pool.Get().(*saveDataNode)
 	newNode.data = data
 	l.lastNode.next = newNode
 	l.lastNode = newNode
-	l.writelock.Unlock()
-	l.readlock.Signal()
+	l.lock.L.Unlock()
+	l.lock.Signal()
 }
 
 func (l *MsgProcessList) Get() interface{} {
-	l.readlock.L.Lock()
+	l.lock.L.Lock()
 	for l.readNode.next == nil {
-		l.readlock.Wait()
+		l.lock.Wait()
 	}
 	data := l.readNode.next.data
 	tmp := l.readNode
@@ -51,6 +49,6 @@ func (l *MsgProcessList) Get() interface{} {
 	tmp.data = nil
 	tmp.next = nil
 	l.pool.Put(tmp)
-	l.readlock.L.Unlock()
+	l.lock.L.Unlock()
 	return data
 }
