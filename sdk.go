@@ -191,13 +191,9 @@ func (live *Live) split(ctx context.Context) {
 		head               messageHeader
 		headerBufferReader *bytes.Reader
 		payloadBuffer      []byte
-		ok                 bool
 	)
 	for {
-		message, ok = live.chSocketMessage.Get().(*socketMessage)
-		if !ok {
-			continue
-		}
+		message = live.chSocketMessage.Get().(*socketMessage)
 		for len(message.body) > 0 {
 			select {
 			case <-ctx.Done():
